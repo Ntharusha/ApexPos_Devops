@@ -22,7 +22,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/ghost69/.kube:/root/.kube
       - /home/ghost69/.minikube:/home/ghost69/.minikube:ro
-      - /home/ghost69/projects/Projects/Apex Pos/core-app-repo:/var/jenkins_home/core-app-repo
+      - /home/ghost69/projects/Projects/Apex Pos/ApexPOS:/var/jenkins_home/ApexPOS
       - /home/ghost69/projects/Projects/Apex Pos/devops-repo:/var/jenkins_home/devops-repo
     restart: always
 
