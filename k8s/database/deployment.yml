@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apexpos-database
+  namespace: apexpos
+  labels:
+    app: apexpos-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apexpos-database
+  template:
+    metadata:
+      labels:
+        app: apexpos-database
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:6.0
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+      volumes:
+        - name: mongodb-data
+          persistentVolumeClaim:
+            claimName: mongodb-pvc

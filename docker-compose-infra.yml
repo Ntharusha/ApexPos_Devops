@@ -14,13 +14,16 @@ services:
       dockerfile: Dockerfile-jenkins
     container_name: devops-jenkins
     ports:
-      - "8080:8080"
+      - "8085:8080"
       - "50000:50000"
     user: root
     volumes:
       - jenkins_data:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
+      - /home/ghost69/.kube:/root/.kube
+      - /home/ghost69/.minikube:/home/ghost69/.minikube:ro
       - /home/ghost69/projects/Projects/Apex Pos/core-app-repo:/var/jenkins_home/core-app-repo
+      - /home/ghost69/projects/Projects/Apex Pos/devops-repo:/var/jenkins_home/devops-repo
     restart: always
 
   watchtower:

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: apexpos
+data:
+  PORT: "5000"
+  NODE_ENV: "production"
+  MONGODB_URI: "mongodb://apexpos-database:27017/apexpos"
+  ALLOWED_ORIGINS: "http://localhost,http://localhost:80,http://localhost:30500,http://localhost:30080"

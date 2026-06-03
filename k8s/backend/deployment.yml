@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apexpos-backend
+  namespace: apexpos
+  labels:
+    app: apexpos-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apexpos-backend
+  template:
+    metadata:
+      labels:
+        app: apexpos-backend
+    spec:
+      containers:
+        - name: backend
+          image: host.minikube.internal:5000/apexpos-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: backend-secrets
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 20
