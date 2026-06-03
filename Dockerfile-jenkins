@@ -1,0 +1,6 @@
+FROM jenkins/jenkins:lts
+USER root
+# Install docker.io to get the docker command-line tool
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends docker.io && \
+    rm -rf /var/lib/apt/lists/*

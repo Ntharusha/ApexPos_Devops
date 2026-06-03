@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  registry:
+    image: registry:2
+    container_name: devops-registry
+    ports:
+      - "5000:5000"
+    restart: always
+
+  jenkins:
+    build:
+      context: .
+      dockerfile: Dockerfile-jenkins
+    container_name: devops-jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    user: root
+    volumes:
+      - jenkins_data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/ghost69/projects/Projects/Apex Pos/core-app-repo:/var/jenkins_home/core-app-repo
+    restart: always
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: devops-watchtower
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=10
+      - WATCHTOWER_LABEL_ENABLE=true
+    restart: always
+
+volumes:
+  jenkins_data:

@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  database:
+    image: mongo:6.0
+    container_name: app-database
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: always
+
+  backend:
+    image: localhost:5000/apexpos-backend:latest
+    container_name: app-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://database:27017/apexpos
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - ALLOWED_ORIGINS=http://localhost,http://localhost:80,http://localhost:5000
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    depends_on:
+      - database
+    restart: always
+
+  frontend:
+    image: localhost:5000/apexpos-frontend:latest
+    container_name: app-frontend
+    ports:
+      - "80:80"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  mongodb_data:
