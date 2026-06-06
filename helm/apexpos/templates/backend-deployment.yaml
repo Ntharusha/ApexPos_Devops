@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "apexpos.fullname" . }}-backend
+  labels:
+    {{- include "apexpos.labels" . | nindent 4 }}
+    app: {{ include "apexpos.fullname" . }}-backend
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "apexpos.selectorLabels" . | nindent 6 }}
+      app: {{ include "apexpos.fullname" . }}-backend
+  template:
+    metadata:
+      labels:
+        {{- include "apexpos.selectorLabels" . | nindent 8 }}
+        app: {{ include "apexpos.fullname" . }}-backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.backend.env.port }}
+              name: http
+          envFrom:
+            - configMapRef:
+                name: {{ include "apexpos.fullname" . }}-backend-config
+            - secretRef:
+                name: {{ include "apexpos.fullname" . }}-backend-secrets
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}

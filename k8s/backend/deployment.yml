@@ -38,3 +38,10 @@ spec:
               port: 5000
             initialDelaySeconds: 15
             periodSeconds: 20
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi

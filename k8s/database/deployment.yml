@@ -20,6 +20,33 @@ spec:
           image: mongo:6.0
           ports:
             - containerPort: 27017
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - --port
+                - "27017"
+                - --eval
+                - "db.runCommand({ping: 1})"
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - mongosh
+                - --port
+                - "27017"
+                - --eval
+                - "db.runCommand({ping: 1})"
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 200m
+              memory: 256Mi
           volumeMounts:
             - name: mongodb-data
               mountPath: /data/db

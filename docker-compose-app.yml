@@ -31,7 +31,7 @@ services:
     image: localhost:5000/apexpos-frontend:latest
     container_name: app-frontend
     ports:
-      - "80:80"
+      - "80:8080"
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
     depends_on:

@@ -1,0 +1,72 @@
+name: DevOps Validation Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Job 1: Lint Kubernetes Manifests
+  # ─────────────────────────────────────────────
+  lint-k8s:
+    name: ☸️ Validate K8s Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up python & Install yamllint
+        run: |
+          sudo apt-get update && sudo apt-get install -y yamllint
+
+      - name: Run yamllint on K8s manifests
+        run: |
+          echo "🔍 Running yamllint on Kubernetes resources..."
+          # Configure lenient line length limits for k8s configs
+          yamllint -d "{extends: relaxed, rules: {line-length: {max: 180}}}" k8s/
+          echo "✅ YAML syntax looks good!"
+
+  # ─────────────────────────────────────────────
+  # Job 2: Lint Helm Chart
+  # ─────────────────────────────────────────────
+  lint-helm:
+    name: ⛵ Lint Helm Chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm CLI
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Execute Helm Lint
+        run: |
+          echo "🔍 Running Helm Lint on apexpos chart..."
+          helm lint helm/apexpos/
+          echo "✅ Helm chart structure is valid!"
+
+  # ─────────────────────────────────────────────
+  # Job 3: Lint Dockerfiles
+  # ─────────────────────────────────────────────
+  lint-docker:
+    name: 🐳 Lint Dockerfiles
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Lint Jenkins Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile-jenkins
+          # Ignore package pinning (DL3008) and tag recommendations (DL3015) for simplicity
+          ignore: DL3008,DL3015

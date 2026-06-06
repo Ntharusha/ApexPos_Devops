@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: apexpos-ingress
+  namespace: apexpos
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  rules:
+    - host: apexpos.local
+      http:
+        paths:
+          # Route traffic for backend API routes
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: apexpos-backend-svc
+                port:
+                  number: 5000
+          # Route all other traffic to frontend
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: apexpos-frontend-svc
+                port:
+                  number: 80

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: apexpos
+description: A Helm chart for deploying the ApexPOS SaaS application (Frontend, Backend, and MongoDB)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

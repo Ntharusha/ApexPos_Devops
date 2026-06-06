@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "apexpos.fullname" . }}-database
+  labels:
+    {{- include "apexpos.labels" . | nindent 4 }}
+    app: {{ include "apexpos.fullname" . }}-database
+spec:
+  replicas: {{ .Values.database.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "apexpos.selectorLabels" . | nindent 6 }}
+      app: {{ include "apexpos.fullname" . }}-database
+  template:
+    metadata:
+      labels:
+        {{- include "apexpos.selectorLabels" . | nindent 8 }}
+        app: {{ include "apexpos.fullname" . }}-database
+    spec:
+      containers:
+        - name: mongodb
+          image: "{{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}"
+          imagePullPolicy: {{ .Values.database.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.database.service.port }}
+              name: mongodb
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - --port
+                - "{{ .Values.database.service.port }}"
+                - --eval
+                - "db.runCommand({ping: 1})"
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - mongosh
+                - --port
+                - "{{ .Values.database.service.port }}"
+                - --eval
+                - "db.runCommand({ping: 1})"
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.database.resources | nindent 12 }}
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+      volumes:
+        - name: mongodb-data
+          {{- if .Values.database.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "apexpos.fullname" . }}-database-pvc
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

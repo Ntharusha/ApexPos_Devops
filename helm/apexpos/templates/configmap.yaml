@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "apexpos.fullname" . }}-backend-config
+  labels:
+    {{- include "apexpos.labels" . | nindent 4 }}
+data:
+  PORT: {{ .Values.backend.env.port | quote }}
+  NODE_ENV: {{ .Values.backend.env.nodeEnv | quote }}
+  MONGODB_URI: "mongodb://{{ include "apexpos.fullname" . }}-database:{{ .Values.database.service.port }}/apexpos"
+  ALLOWED_ORIGINS: {{ .Values.backend.env.allowedOrigins | quote }}
