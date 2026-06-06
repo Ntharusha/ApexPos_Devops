@@ -218,3 +218,35 @@ Upon any push or pull request to the `main` or `dev` branches, the DevOps pipeli
 * **Dockerfile Linting**: Inspects the Jenkins Dockerfile for security and package pinning violations using `hadolint`.
 * **Kubernetes YAML Validation**: Checks Kubernetes manifests for syntax irregularities using `yamllint`.
 * **Helm Chart Checks**: Asserts Helm charts structure using `helm lint`.
+
+---
+
+## 🔄 How to Work This System (Workflow)
+
+This platform separates your application code from your infrastructure configuration. Here is the operational lifecycle for working with this setup:
+
+### 1. Making Application Changes (Frontend/Backend)
+* **Local Development**:
+  1. Open your code in the sibling [ApexPOS](https://github.com/Ntharusha/ApexPOS) repository.
+  2. Start the backend (`cd server && npm run dev`) and frontend (`cd client && npm run dev`) to test features locally.
+* **Production Deployment**:
+  1. Stage, commit, and push your changes inside the `ApexPOS` repository:
+     ```bash
+     git add .
+     git commit -m "feat: add new modules"
+     git push origin dev
+     ```
+  2. **CI/CD Automation**: GitHub Actions runs automatically in the background to lint code, compile Docker containers, push the new images to GitHub Packages (`ghcr.io`), and trigger a zero-downtime rolling restart in your Kubernetes cluster.
+
+### 2. Making Infrastructure/DevOps Changes
+* If you need to modify server specs, Kubernetes configurations, or Helm charts:
+  1. Navigate to this repository (`devops-repo`).
+  2. Make changes to Terraform scripts, Helm templates (`values.yaml`), or Kubernetes manifests.
+  3. Push changes to GitHub:
+     ```bash
+     git add .
+     git commit -m "config: increase backend memory allocation"
+     git push origin main
+     ```
+  4. **GitOps Automation**: **Argo CD** automatically detects your changes, pulls the new manifests, and synchronizes the cluster state without you ever needing to run manual deployment commands!
+
