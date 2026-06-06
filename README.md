@@ -17,11 +17,11 @@ graph TD
     CF -->|SSL Proxying| IGW[AWS Internet Gateway]
     IGW -->|Route Table| Ingress[Nginx Ingress Controller]
     
-    subgraph VPC Public Subnet
+    subgraph "VPC Public Subnet"
         Ingress
     end
     
-    subgraph VPC Private Subnet (K3s Cluster)
+    subgraph "VPC Private Subnet (K3s Cluster)"
         Ingress -->|Path /| FE[Frontend Pods: Port 8080]
         Ingress -->|Path /api| BE[Backend Pods: Port 5000]
         BE -->|Internal TCP| DB[(MongoDB Pod: Port 27017)]
@@ -75,7 +75,7 @@ graph LR
     LocalHost -->|Port 9000| Sonar[sonarqube]
     LocalHost -->|Port 5000| Registry[devops-registry]
     
-    subgraph DevOps Local Sandbox
+    subgraph "DevOps Local Sandbox"
         Jenkins -->|Query Status| Sonar
         Jenkins -->|Build & Push| Registry
         Watchtower[watchtower] -->|Auto-pull | Registry
