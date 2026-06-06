@@ -1,82 +1,168 @@
-# 🛠️ ApexPOS DevOps Infrastructure & Configuration Hub
+# 🛠️ ApexPOS Enterprise DevOps Infrastructure & Configuration Hub
 
-Welcome to the **ApexPOS DevOps Infrastructure** repository. This project centralizes all operations, Infrastructure as Code (IaC), GitOps continuous delivery (CD), and Helm packaging configurations to run the ApexPOS MERN SaaS platform at scale.
+Welcome to the **ApexPOS DevOps Infrastructure** repository. This repository houses the entire Infrastructure as Code (IaC), GitOps Continuous Delivery (CD), Kubernetes packaging (Helm), and local development automation configurations for the ApexPOS SaaS application.
+
+This hub is designed to support a scalable, secure, and cost-optimized deployment pipeline, demonstrating cloud engineering best practices.
 
 ---
 
-## 🏛️ Directory Structure Overview
+## 🏛️ System Architecture Diagrams
+
+### 1. Cloud Production Traffic Flow
+This diagram illustrates how a customer's request flows securely through DNS, CDN, and Ingress to the unprivileged containers inside the Kubernetes cluster.
+
+```mermaid
+graph TD
+    Client[Client / Web Browser] -->|HTTPS: Port 443| CF[Cloudflare CDN & WAF]
+    CF -->|SSL Proxying| IGW[AWS Internet Gateway]
+    IGW -->|Route Table| Ingress[Nginx Ingress Controller]
+    
+    subgraph VPC Public Subnet
+        Ingress
+    end
+    
+    subgraph VPC Private Subnet (K3s Cluster)
+        Ingress -->|Path /| FE[Frontend Pods: Port 8080]
+        Ingress -->|Path /api| BE[Backend Pods: Port 5000]
+        BE -->|Internal TCP| DB[(MongoDB Pod: Port 27017)]
+        DB-PVC[(EBS persistentVolumeClaim)] <---> DB
+    end
+    
+    classDef cloud fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef cluster fill:#bbf,stroke:#333,stroke-width:1px;
+    class CF cloud;
+    class FE,BE,DB cluster;
+```
+
+---
+
+### 2. CI/CD & GitOps Delivery Lifecycle
+This diagram details the fully automated validation and release lifecycle. Code changes in Git trigger automated linting, container compilation, and GitOps synchronization.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Dev as Developer
+    participant Git as GitHub Repository
+    participant GHA as GitHub Actions (CI)
+    participant GHCR as GitHub Container Registry (GHCR)
+    participant Argo as Argo CD Controller
+    participant K8s as K3s Kubernetes Cluster
+
+    Dev->>Git: git push origin main / dev
+    Git->>GHA: Trigger validate & build workflow
+    activate GHA
+    Note over GHA: Run Hadolint, Yamllint & Helm Lint
+    Note over GHA: Build & tag secure Docker images
+    GHA->>GHCR: Push frontend/backend images
+    deactivate GHA
+    
+    Note over Argo: Argo CD polling Git Repository
+    Argo->>Git: Detect manifest or configuration changes
+    Argo->>K8s: Apply updates (Rolling Restart / Sync)
+    K8s->>GHCR: Pull latest unprivileged images
+    Note over K8s: Complete Zero-Downtime Rollout
+```
+
+---
+
+### 3. Local Development Sandbox Infrastructure
+For offline testing and sandbox verification, Docker Compose spins up a local CI/CD environment with Jenkins, SonarQube, and a local Docker Registry.
+
+```mermaid
+graph LR
+    LocalHost[Local Machine] -->|Port 8085| Jenkins[devops-jenkins]
+    LocalHost -->|Port 9000| Sonar[sonarqube]
+    LocalHost -->|Port 5000| Registry[devops-registry]
+    
+    subgraph DevOps Local Sandbox
+        Jenkins -->|Query Status| Sonar
+        Jenkins -->|Build & Push| Registry
+        Watchtower[watchtower] -->|Auto-pull | Registry
+    end
+```
+
+---
+
+## 📂 Repository Directory Layout
 
 ```text
 ├── .github/workflows/
-│   └── validate.yml          # GitHub Actions pipeline (yamllint, hadolint, helm lint)
+│   └── validate.yml          # CI Pipeline (yamllint, hadolint, helm lint)
 ├── helm/
-│   └── apexpos/              # Helm chart packaging for Frontend, Backend, & MongoDB
-│       ├── templates/        # Kubernetes resource templates
-│       ├── Chart.yaml        # Chart metadata
-│       └── values.yaml       # Global deployment configurations
-├── k8s/                      # Raw Kubernetes manifests (Alternative to Helm)
-│   ├── backend/              # Node/Express API deployments & secrets
-│   ├── database/             # MongoDB stateful PVCs & pods
-│   ├── frontend/             # Nginx unprivileged React SPA deployments
-│   ├── argocd-app.yml        # Argo CD GitOps Application manifest
-│   └── namespace.yml         # Shared namespace declaration
-├── terraform/                # Infrastructure as Code for AWS Provisioning
-│   ├── providers.tf          # AWS version constraints
-│   ├── variables.tf          # Parameterized variables (regions, instance sizes)
-│   ├── vpc.tf                # VPC, subnets, NAT Gateway, routes
-│   ├── security_groups.tf    # Restricted ports configuration (22, 80, 443, NodePorts)
-│   ├── ec2.tf                # Bootstrapping instance with K3s, Docker, and Helm
-│   └── outputs.tf            # Command outputs (IP, SSH helpers)
-├── docker-compose-app.yml    # Runs application containers locally (Frontend/Backend/DB)
-├── docker-compose-infra.yml  # Runs DevOps sandboxes locally (Jenkins, SonarQube, Registry)
-└── Dockerfile-jenkins        # Custom Jenkins Dockerfile containing kubectl, Node, & plugins
+│   └── apexpos/              # Standardized Helm Chart for Kubernetes Packaging
+│       ├── templates/        # Reusable Kubernetes YAML Templates
+│       │   ├── _helpers.tpl  # Label & Name generators
+│       │   ├── backend-*.yaml# API Deployment & Service
+│       │   ├── frontend-*.yaml# Frontend Nginx Deployment & Service
+│       │   ├── mongodb-*.yaml# Stateful database config & PVCs
+│       │   ├── configmap.yaml# App properties ConfigMap
+│       │   ├── secrets.yaml  # Base64 encrypted secrets placeholder
+│       │   └── ingress.yaml  # Nginx Ingress routing template
+│       ├── Chart.yaml        # Chart configuration
+│       └── values.yaml       # User-facing values file
+├── k8s/                      # Raw Kubernetes manifests (Traditional Setup)
+│   ├── backend/              # Raw Deployment, Service, ConfigMap & Secrets
+│   ├── database/             # Raw MongoDB Stateful Pod & PVC
+│   ├── frontend/             # Raw Frontend Nginx unprivileged configs
+│   ├── argocd-app.yml        # Argo CD GitOps Application resource
+│   └── namespace.yml         # Shared Namespace declaration
+├── terraform/                # Infrastructure as Code (AWS Provisioning)
+│   ├── providers.tf          # Terraform & AWS Providers
+│   ├── variables.tf          # Configurable variables (region, size, keys)
+│   ├── vpc.tf                # VPC, Subnets, Gateways & Route Tables
+│   ├── security_groups.tf    # Port configurations
+│   ├── ec2.tf                # Cluster server & K3s bootstrap scripting
+│   └── outputs.tf            # Command helper outputs
+├── docker-compose-app.yml    # Local multi-container stack (Frontend/Backend/DB)
+├── docker-compose-infra.yml  # Local DevOps stack (Jenkins/SonarQube/Registry)
+└── Dockerfile-jenkins        # Custom Jenkins container with kubectl, node, and plugins
 ```
 
 ---
 
-## 🚀 1. Local Sandboxing & Infrastructure (Docker Compose)
+## 🚀 1. Local Sandboxing (Docker Compose)
 
-We provide a complete sandbox containing **Jenkins**, **SonarQube**, and a local **Docker Registry** to develop and test pipelines locally without paying for cloud resources.
-
-### Run Local Infrastructure
-To spin up Jenkins and SonarQube:
+### A. DevOps Infrastructure Stack
+Runs Jenkins, SonarQube, Postgres DB, a local Docker registry, and Watchtower.
 ```bash
 docker compose -f docker-compose-infra.yml up -d
 ```
-- **Jenkins Dashboard**: `http://localhost:8085` (Security disabled automatically for local convenience)
-- **SonarQube Server**: `http://localhost:9000` (Used for code quality scanning)
-- **Local Docker Registry**: `http://localhost:5000` (Allows pushes from Jenkins)
+* **Jenkins**: `http://localhost:8085` (Unsecured sandbox configuration)
+* **SonarQube**: `http://localhost:9000` (Default credential `admin:SonarQubeAdmin123_`)
+* **Docker Registry**: `http://localhost:5000`
 
-### Run Local Application
-To spin up frontend, backend, and MongoDB database containers using Docker Compose:
+### B. Application Stack
+Runs the fully functional application stack (client, server, database) on localhost:
 ```bash
 docker compose -f docker-compose-app.yml up -d
 ```
-- **Frontend Dashboard**: `http://localhost`
-- **Backend API Server**: `http://localhost:5000`
-- **MongoDB Instance**: `localhost:27017`
+* **Frontend**: `http://localhost` (Routes requests to unprivileged container port `8080`)
+* **Backend API**: `http://localhost:5000`
+* **MongoDB**: `localhost:27017`
 
 ---
 
-## ⛵ 2. Kubernetes Packaging with Helm
+## ⛵ 2. Kubernetes Packaging (Helm Chart)
 
-We package the entire stack (Frontend, Backend, and MongoDB) into a standard Helm Chart. This allows dynamic environment management (Staging vs. Production) and simple release rollbacks.
+The Helm Chart simplifies variable substitution across multiple environments (Dev, Staging, Prod).
 
-### Validate Chart
+### Lint Chart:
 ```bash
 helm lint helm/apexpos/
 ```
 
-### Install Application
-Deploy the entire platform into the `apexpos` namespace:
+### Install Release:
 ```bash
-helm install apexpos-prod helm/apexpos/ \
-  --namespace apexpos \
-  --create-namespace
+helm install apexpos-prod helm/apexpos/ --namespace apexpos --create-namespace
 ```
 
-### Customize values
-You can override configurations dynamically. For instance, to enable the Ingress controller routing:
+### Dry Run (Debugging):
+```bash
+helm install apexpos-prod helm/apexpos/ --dry-run --debug -n apexpos
+```
+
+### Upgrade Release:
 ```bash
 helm upgrade apexpos-prod helm/apexpos/ --set ingress.enabled=true -n apexpos
 ```
@@ -85,51 +171,50 @@ helm upgrade apexpos-prod helm/apexpos/ --set ingress.enabled=true -n apexpos
 
 ## 🏗️ 3. Infrastructure as Code (Terraform)
 
-The `terraform` directory provisions a professional AWS VPC with public and private subnets, security groups, and an EC2 instance preconfigured with **k3s (Kubernetes)**, **Docker**, and **Helm** via user-data scripting.
+Terraform provisions AWS cloud infrastructure that hosts the Kubernetes cluster.
 
-1. **Configure credentials** on your local machine and initialize:
+1. **Initialize Terraform & Get Plugins**:
    ```bash
    cd terraform
    terraform init
    ```
-2. **Review proposed resources**:
+2. **Preview Plan**:
    ```bash
-   terraform plan -var="key_name=your-ssh-key"
+   terraform plan -var="key_name=my-aws-key"
    ```
-3. **Provision resources**:
+3. **Provision Resources**:
    ```bash
-   terraform apply -var="key_name=your-ssh-key" --auto-approve
+   terraform apply -var="key_name=my-aws-key" --auto-approve
    ```
-4. **Retrieve cluster configuration**:
+4. **Copy Kubeconfig Locally**:
    ```bash
-   # Run output helper command to copy Kubeconfig locally
-   ssh -i your-ssh-key.pem ubuntu@<INSTANCE_IP> 'sudo cat /etc/rancher/k3s/k3s.yaml' | sed 's/127.0.0.1/<INSTANCE_IP>/g' > ./k3s-kubeconfig
+   # Run the command generated by the output to configure local kubectl
+   ssh -i my-aws-key.pem ubuntu@<EC2_IP> 'sudo cat /etc/rancher/k3s/k3s.yaml' | sed 's/127.0.0.1/<EC2_IP>/g' > ./k3s-kubeconfig
    export KUBECONFIG=$(pwd)/k3s-kubeconfig
    ```
 
 ---
 
-## 🔄 4. GitOps Delivery with Argo CD
+## 🔄 4. GitOps with Argo CD
 
-Continuous deployment (CD) is handled using **Argo CD** to sync manifests directly from this GitHub repository.
+Argo CD implements automated delivery by matching the cluster state to this GitHub repository.
 
-1. **Deploy Argo CD** to your cluster:
+1. **Install Argo CD**:
    ```bash
    kubectl create namespace argocd
    kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
    ```
-2. **Apply the GitOps application controller**:
+2. **Apply GitOps Manifest**:
    ```bash
    kubectl apply -f k8s/argocd-app.yml
    ```
-   Argo CD will automatically sync configurations and deploy the manifests located in the `k8s/` folder, ensuring the running system matches git commits with zero manual intervention.
+   Argo CD will automatically sync configurations, pull the raw manifests from the `k8s/` folder, and monitor health status.
 
 ---
 
-## 🧪 5. Automated CI/CD Validation Pipeline
+## 🧪 5. Automated CI Validation (GitHub Actions)
 
-Any push or pull request to the `main` or `dev` branch triggers the GitHub Actions pipeline (`validate.yml`):
-- **Linting YAML configurations** using `yamllint`.
-- **Validating Helm Chart structure** using `helm lint`.
-- **Inspecting Dockerfiles** for security breaches and package optimization using `hadolint`.
-This ensures no broken configurations or insecure Docker configurations are merged into the repository.
+Upon any push or pull request to the `main` or `dev` branches, the DevOps pipeline (`validate.yml`) is triggered to run:
+* **Dockerfile Linting**: Inspects the Jenkins Dockerfile for security and package pinning violations using `hadolint`.
+* **Kubernetes YAML Validation**: Checks Kubernetes manifests for syntax irregularities using `yamllint`.
+* **Helm Chart Checks**: Asserts Helm charts structure using `helm lint`.
