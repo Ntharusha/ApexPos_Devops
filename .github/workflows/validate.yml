@@ -1,4 +1,4 @@
-name: DevOps Validation Pipeline
+name: Validate Configurations
 
 on:
   push:
@@ -12,53 +12,47 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ─────────────────────────────────────────────
-  # Job 1: Lint Kubernetes Manifests
-  # ─────────────────────────────────────────────
+  # Lint Kubernetes Manifests
   lint-k8s:
-    name: ☸️ Validate K8s Manifests
+    name: Lint K8s Manifests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up python & Install yamllint
+      - name: Install yamllint
         run: |
           sudo apt-get update && sudo apt-get install -y yamllint
 
-      - name: Run yamllint on K8s manifests
+      - name: Run yamllint
         run: |
-          echo "🔍 Running yamllint on Kubernetes resources..."
-          # Configure lenient line length limits for k8s configs
+          echo "Running yamllint on Kubernetes configs..."
+          # Configure relaxed rule definitions for development manifests
           yamllint -d "{extends: relaxed, rules: {line-length: {max: 180}}}" k8s/
-          echo "✅ YAML syntax looks good!"
+          echo "YAML syntax check complete."
 
-  # ─────────────────────────────────────────────
-  # Job 2: Lint Helm Chart
-  # ─────────────────────────────────────────────
+  # Lint Helm Chart
   lint-helm:
-    name: ⛵ Lint Helm Chart
+    name: Lint Helm Chart
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Helm CLI
+      - name: Setup Helm CLI
         uses: azure/setup-helm@v4
         with:
           version: 'latest'
 
-      - name: Execute Helm Lint
+      - name: Run Helm Lint
         run: |
-          echo "🔍 Running Helm Lint on apexpos chart..."
+          echo "Running helm lint..."
           helm lint helm/apexpos/
-          echo "✅ Helm chart structure is valid!"
+          echo "Helm lint check complete."
 
-  # ─────────────────────────────────────────────
-  # Job 3: Lint Dockerfiles
-  # ─────────────────────────────────────────────
+  # Lint Dockerfiles
   lint-docker:
-    name: 🐳 Lint Dockerfiles
+    name: Lint Dockerfiles
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -68,5 +62,5 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile-jenkins
-          # Ignore package pinning (DL3008) and tag recommendations (DL3015) for simplicity
+          # Ignore warning DL3008 (pinning apt versions) and DL3015 (recommends)
           ignore: DL3008,DL3015
