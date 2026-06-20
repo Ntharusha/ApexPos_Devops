@@ -1,13 +1,4 @@
-terraform {
-  required_version = ">= 1.5.0"
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
-provider "aws" {
-  region = var.aws_region
-}
+# AWS cloud configuration files have been moved to:
+# terraform/aws-cloud-production/providers.tf
+# Local minikube configuration files are located in:
+# terraform/local-minikube/

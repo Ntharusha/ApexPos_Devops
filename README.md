@@ -1,84 +1,75 @@
 # 🛠️ ApexPOS Enterprise DevOps Infrastructure & Configuration Hub
 
-Welcome to the **ApexPOS DevOps Infrastructure** repository. This repository houses the entire Infrastructure as Code (IaC), GitOps Continuous Delivery (CD), Kubernetes packaging (Helm), and local development automation configurations for the ApexPOS SaaS application.
+Welcome to the **ApexPOS DevOps Infrastructure** repository. This repository houses the entire Infrastructure as Code (IaC), GitOps Continuous Delivery (CD), Kubernetes packaging (Helm), local sandbox automation, and observability setups for the ApexPOS SaaS application.
 
-This hub is designed to support a scalable, secure, and cost-optimized deployment pipeline, demonstrating cloud engineering best practices.
+This repository is optimized for **zero-cloud-cost local sandboxing** using **Minikube** on localhost, mimicking a production-grade cloud setup with full GitOps and monitoring. It also preserves your **AWS Cloud Production IaC** as a code reference for interview showcases.
 
 ---
 
 ## 🏛️ System Architecture Diagrams
 
-### 1. Cloud Production Traffic Flow
-This diagram illustrates how a customer's request flows securely through DNS, CDN, and Ingress to the unprivileged containers inside the Kubernetes cluster.
+### 1. Local Kubernetes Sandbox Traffic Flow
+This diagram illustrates how requests flow locally through the Nginx Ingress Controller inside the Minikube cluster using local host mapping.
 
 ```mermaid
 graph TD
-    Client[Client / Web Browser] -->|HTTPS: Port 443| CF[Cloudflare CDN & WAF]
-    CF -->|SSL Proxying| IGW[AWS Internet Gateway]
-    IGW -->|Route Table| Ingress[Nginx Ingress Controller]
+    Client[Client / Web Browser] -->|HTTP: http://apexpos.local| Ingress[Nginx Ingress Controller]
+    Ingress -->|Path /| FE[Frontend Pods: Port 8080]
+    Ingress -->|Path /api| BE[Backend Pods: Port 5000]
+    BE -->|Internal TCP| DB[(MongoDB Pod: Port 27017)]
+    DB-PVC[(Local Persistent Volume PVC)] <---> DB
     
-    subgraph "VPC Public Subnet"
+    subgraph "Minikube Local Cluster (Namespace: apexpos)"
         Ingress
+        FE
+        BE
+        DB
     end
-    
-    subgraph "VPC Private Subnet (K3s Cluster)"
-        Ingress -->|Path /| FE[Frontend Pods: Port 8080]
-        Ingress -->|Path /api| BE[Backend Pods: Port 5000]
-        BE -->|Internal TCP| DB[(MongoDB Pod: Port 27017)]
-        DB-PVC[(EBS persistentVolumeClaim)] <---> DB
-    end
-    
-    classDef cloud fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef cluster fill:#bbf,stroke:#333,stroke-width:1px;
-    class CF cloud;
-    class FE,BE,DB cluster;
 ```
 
 ---
 
 ### 2. CI/CD & GitOps Delivery Lifecycle
-This diagram details the fully automated validation and release lifecycle. Code changes in Git trigger automated linting, container compilation, and GitOps synchronization.
+This diagram details the local CI/CD workflow where Jenkins builds Docker images from your workspace, pushes them to a local Docker registry, and deploys them to Minikube. Argo CD handles state reconciliation.
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Dev as Developer
-    participant Git as GitHub Repository
-    participant GHA as GitHub Actions (CI)
-    participant GHCR as GitHub Container Registry (GHCR)
-    participant Argo as Argo CD Controller
-    participant K8s as K3s Kubernetes Cluster
+    participant LocalWorkspace as Local ApexPOS Workspace
+    participant Jenkins as Jenkins Container (localhost:8085)
+    participant Reg as Local Docker Registry (localhost:5000)
+    participant Argo as Argo CD Controller (http://argocd.local)
+    participant K8s as Minikube Cluster (apexpos Namespace)
 
-    Dev->>Git: git push origin main / dev
-    Git->>GHA: Trigger validate & build workflow
-    activate GHA
-    Note over GHA: Run Hadolint, Yamllint & Helm Lint
-    Note over GHA: Build & tag secure Docker images
-    GHA->>GHCR: Push frontend/backend images
-    deactivate GHA
+    Dev->>LocalWorkspace: Make frontend / backend code changes
+    Dev->>Jenkins: Trigger local CI pipeline
+    activate Jenkins
+    Note over Jenkins: Analyze code quality with SonarQube
+    Note over Jenkins: Build & Tag Docker containers
+    Jenkins->>Reg: Push images (host.minikube.internal:5000)
+    deactivate Jenkins
     
-    Note over Argo: Argo CD polling Git Repository
-    Argo->>Git: Detect manifest or configuration changes
-    Argo->>K8s: Apply updates (Rolling Restart / Sync)
-    K8s->>GHCR: Pull latest unprivileged images
-    Note over K8s: Complete Zero-Downtime Rollout
+    Note over Argo: Argo CD polling Git Configs
+    Argo->>K8s: Apply updates (Namespace, secrets, deployments)
+    K8s->>Reg: Pull latest images
+    Note over K8s: Complete Zero-Downtime Rolling Update
 ```
 
 ---
 
-### 3. Local Development Sandbox Infrastructure
-For offline testing and sandbox verification, Docker Compose spins up a local CI/CD environment with Jenkins, SonarQube, and a local Docker Registry.
+### 3. Monitoring & Observability Flow
+Prometheus and Grafana are configured to scrape metrics from the Kubernetes nodes, pods, and application processes to verify stability.
 
 ```mermaid
 graph LR
-    LocalHost[Local Machine] -->|Port 8085| Jenkins[devops-jenkins]
-    LocalHost -->|Port 9000| Sonar[sonarqube]
-    LocalHost -->|Port 5000| Registry[devops-registry]
+    Pods[Application Pods] --->|Expose Metrics| Prom[Prometheus Server]
+    K8sNode[Kubernetes Node Stats] --->|Node Exporter| Prom
+    Prom --->|Read Metrics| Grafana[Grafana Dashboard: http://grafana.local]
     
-    subgraph "DevOps Local Sandbox"
-        Jenkins -->|Query Status| Sonar
-        Jenkins -->|Build & Push| Registry
-        Watchtower[watchtower] -->|Auto-pull | Registry
+    subgraph "Observability Stack (Namespace: monitoring)"
+        Prom
+        Grafana
     end
 ```
 
@@ -92,69 +83,102 @@ graph LR
 ├── helm/
 │   └── apexpos/              # Standardized Helm Chart for Kubernetes Packaging
 │       ├── templates/        # Reusable Kubernetes YAML Templates
-│       │   ├── _helpers.tpl  # Label & Name generators
-│       │   ├── backend-*.yaml# API Deployment & Service
-│       │   ├── frontend-*.yaml# Frontend Nginx Deployment & Service
-│       │   ├── mongodb-*.yaml# Stateful database config & PVCs
-│       │   ├── configmap.yaml# App properties ConfigMap
-│       │   ├── secrets.yaml  # Base64 encrypted secrets placeholder
-│       │   └── ingress.yaml  # Nginx Ingress routing template
 │       ├── Chart.yaml        # Chart configuration
 │       └── values.yaml       # User-facing values file
 ├── k8s/                      # Raw Kubernetes manifests (Traditional Setup)
 │   ├── backend/              # Raw Deployment, Service, ConfigMap & Secrets
 │   ├── database/             # Raw MongoDB Stateful Pod & PVC
-│   ├── frontend/             # Raw Frontend Nginx unprivileged configs
+│   ├── frontend/             # Raw Frontend Nginx configurations
 │   ├── argocd-app.yml        # Argo CD GitOps Application resource
 │   └── namespace.yml         # Shared Namespace declaration
-├── terraform/                # Infrastructure as Code (AWS Provisioning)
-│   ├── providers.tf          # Terraform & AWS Providers
-│   ├── variables.tf          # Configurable variables (region, size, keys)
-│   ├── vpc.tf                # VPC, Subnets, Gateways & Route Tables
-│   ├── security_groups.tf    # Port configurations
-│   ├── ec2.tf                # Cluster server & K3s bootstrap scripting
-│   └── outputs.tf            # Command helper outputs
-├── docker-compose-app.yml    # Local multi-container stack (Frontend/Backend/DB)
+├── terraform/                # Infrastructure as Code
+│   ├── local-minikube/       # [NEW] Bootstrap Minikube namespaces, ArgoCD & Prometheus/Grafana
+│   │   ├── providers.tf      # Local K8s & Helm providers
+│   │   ├── main.tf           # Provisioning namespaces, secrets, Helm charts
+│   │   ├── variables.tf      # Local cluster configuration variables
+│   │   └── outputs.tf        # Access URLs & helper print statements
+│   └── aws-cloud-production/ # [PRESERVED] Production AWS network/EC2 configurations
+│       ├── providers.tf, variables.tf, vpc.tf, security_groups.tf, ec2.tf, outputs.tf
 ├── docker-compose-infra.yml  # Local DevOps stack (Jenkins/SonarQube/Registry)
-└── Dockerfile-jenkins        # Custom Jenkins container with kubectl, node, and plugins
+├── Dockerfile-jenkins        # Custom Jenkins container with kubectl, node, and plugins
+├── init_pipeline.groovy      # Automated Jenkins pipeline configure script
+└── local-infra.sh            # [NEW] Unified control script to orchestrate the platform
 ```
 
 ---
 
-## 🚀 1. Local Sandboxing (Docker Compose)
+## 🚀 Orchestrating the Platform (`local-infra.sh`)
 
-### A. DevOps Infrastructure Stack
-Runs Jenkins, SonarQube, Postgres DB, a local Docker registry, and Watchtower.
-```bash
-docker compose -f docker-compose-infra.yml up -d
-```
-* **Jenkins**: `http://localhost:8085` (Unsecured sandbox configuration)
-* **SonarQube**: `http://localhost:9000` (Default credential `admin:SonarQubeAdmin123_`)
-* **Docker Registry**: `http://localhost:5000`
+Instead of writing complex setup steps, a custom bash orchestrator manages the lifecycle of your local DevOps ecosystem.
 
-### B. Application Stack
-Runs the fully functional application stack (client, server, database) on localhost:
+### A. Bootstrapping the Platform
+To launch Minikube, enable ingress, start Jenkins/SonarQube, run local Terraform, and output endpoints, simply run:
 ```bash
-docker compose -f docker-compose-app.yml up -d
+./local-infra.sh start
 ```
-* **Frontend**: `http://localhost` (Routes requests to unprivileged container port `8080`)
-* **Backend API**: `http://localhost:5000`
-* **MongoDB**: `localhost:27017`
+
+### B. Checking System Health & Endpoints
+To view the current status of all pods, Docker containers, and obtain access URLs:
+```bash
+./local-infra.sh status
+```
+
+### C. Stopping the Sandbox
+To destroy Kubernetes deployments, clear Docker containers, and stop the Minikube VM:
+```bash
+./local-infra.sh stop
+```
 
 ---
 
-## ⛵ 2. Kubernetes Packaging (Helm Chart)
+## 🌐 Configuring Local Domains (/etc/hosts)
 
-The Helm Chart simplifies variable substitution across multiple environments (Dev, Staging, Prod).
+This project routes traffic using the Nginx Ingress Controller on custom local domains. Map these domains to your Minikube IP address:
+
+1. Retrieve your Minikube IP:
+   ```bash
+   minikube ip
+   ```
+2. Add the mapping to your local `/etc/hosts` file (requires `sudo` privileges):
+   ```text
+   # Add this line (replace 192.168.49.2 with your actual minikube ip)
+   192.168.49.2 apexpos.local argocd.local grafana.local
+   ```
+3. Now, you can access the consoles directly via your browser:
+   * **ApexPOS App**: [http://apexpos.local](http://apexpos.local)
+   * **ArgoCD GitOps**: [http://argocd.local](http://argocd.local)
+   * **Grafana Observability**: [http://grafana.local](http://grafana.local) (Username: `admin` / Password: `admin`)
+   * **Jenkins Pipeline**: `http://localhost:8085`
+   * **SonarQube Analysis**: `http://localhost:9000` (Username: `admin` / Password: `SonarQubeAdmin123_`)
+
+---
+
+## 🏗️ Local Infrastructure as Code (Terraform)
+
+Rather than using Terraform to deploy cloud servers, we write Terraform to manage resources *inside* the Kubernetes cluster. This demonstrates production-grade IaC skills without paying cloud costs.
+
+The configurations inside `terraform/local-minikube` execute the following:
+* **Kubernetes Namespaces**: Declaratively creates `apexpos`, `monitoring`, and `argocd`.
+* **Secrets Management**: Deploys `backend-secrets` with JWT tokens securely.
+* **Argo CD Release**: Installs the official Helm chart and configures ingress paths and `--insecure` arguments for local development.
+* **Observability Stack**: Installs the `kube-prometheus-stack` Helm chart (Prometheus/Grafana) and opens ingress mappings.
+
+To apply changes manually:
+```bash
+cd terraform/local-minikube
+terraform init
+terraform apply -auto-approve
+```
+
+---
+
+## ⛵ Kubernetes Packaging (Helm Chart)
+
+The Helm Chart located in `helm/apexpos/` acts as a parameterized template for the ApexPOS deployments, separating configuration values from YAML structures.
 
 ### Lint Chart:
 ```bash
 helm lint helm/apexpos/
-```
-
-### Install Release:
-```bash
-helm install apexpos-prod helm/apexpos/ --namespace apexpos --create-namespace
 ```
 
 ### Dry Run (Debugging):
@@ -162,91 +186,30 @@ helm install apexpos-prod helm/apexpos/ --namespace apexpos --create-namespace
 helm install apexpos-prod helm/apexpos/ --dry-run --debug -n apexpos
 ```
 
-### Upgrade Release:
+### Install Release:
 ```bash
-helm upgrade apexpos-prod helm/apexpos/ --set ingress.enabled=true -n apexpos
+helm install apexpos-prod helm/apexpos/ --namespace apexpos --create-namespace
 ```
 
 ---
 
-## 🏗️ 3. Infrastructure as Code (Terraform)
+## 🔄 Local GitOps Delivery (Argo CD)
 
-Terraform provisions AWS cloud infrastructure that hosts the Kubernetes cluster.
+Argo CD matches the live Kubernetes cluster state to this Git repository, preventing configuration drift.
 
-1. **Initialize Terraform & Get Plugins**:
-   ```bash
-   cd terraform
-   terraform init
-   ```
-2. **Preview Plan**:
-   ```bash
-   terraform plan -var="key_name=my-aws-key"
-   ```
-3. **Provision Resources**:
-   ```bash
-   terraform apply -var="key_name=my-aws-key" --auto-approve
-   ```
-4. **Copy Kubeconfig Locally**:
-   ```bash
-   # Run the command generated by the output to configure local kubectl
-   ssh -i my-aws-key.pem ubuntu@<EC2_IP> 'sudo cat /etc/rancher/k3s/k3s.yaml' | sed 's/127.0.0.1/<EC2_IP>/g' > ./k3s-kubeconfig
-   export KUBECONFIG=$(pwd)/k3s-kubeconfig
-   ```
-
----
-
-## 🔄 4. GitOps with Argo CD
-
-Argo CD implements automated delivery by matching the cluster state to this GitHub repository.
-
-1. **Install Argo CD**:
-   ```bash
-   kubectl create namespace argocd
-   kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-   ```
-2. **Apply GitOps Manifest**:
+1. Install via Terraform (automated by `./local-infra.sh start`).
+2. Map `argocd.local` in your `/etc/hosts`.
+3. Register the application to sync configurations from your local `k8s` directory:
    ```bash
    kubectl apply -f k8s/argocd-app.yml
    ```
-   Argo CD will automatically sync configurations, pull the raw manifests from the `k8s/` folder, and monitor health status.
+   Argo CD will automatically sync resources into the `apexpos` namespace and self-heal any modifications.
 
 ---
 
-## 🧪 5. Automated CI Validation (GitHub Actions)
+## 🧪 Automated CI Validation (GitHub Actions)
 
-Upon any push or pull request to the `main` or `dev` branches, the DevOps pipeline (`validate.yml`) is triggered to run:
+Upon any push or pull request to the `main` or `dev` branches, the GitHub Actions pipeline (`validate.yml`) runs:
 * **Dockerfile Linting**: Inspects the Jenkins Dockerfile for security and package pinning violations using `hadolint`.
 * **Kubernetes YAML Validation**: Checks Kubernetes manifests for syntax irregularities using `yamllint`.
 * **Helm Chart Checks**: Asserts Helm charts structure using `helm lint`.
-
----
-
-## 🔄 How to Work This System (Workflow)
-
-This platform separates your application code from your infrastructure configuration. Here is the operational lifecycle for working with this setup:
-
-### 1. Making Application Changes (Frontend/Backend)
-* **Local Development**:
-  1. Open your code in the sibling [ApexPOS](https://github.com/Ntharusha/ApexPOS) repository.
-  2. Start the backend (`cd server && npm run dev`) and frontend (`cd client && npm run dev`) to test features locally.
-* **Production Deployment**:
-  1. Stage, commit, and push your changes inside the `ApexPOS` repository:
-     ```bash
-     git add .
-     git commit -m "feat: add new modules"
-     git push origin dev
-     ```
-  2. **CI/CD Automation**: GitHub Actions runs automatically in the background to lint code, compile Docker containers, push the new images to GitHub Packages (`ghcr.io`), and trigger a zero-downtime rolling restart in your Kubernetes cluster.
-
-### 2. Making Infrastructure/DevOps Changes
-* If you need to modify server specs, Kubernetes configurations, or Helm charts:
-  1. Navigate to this repository (`devops-repo`).
-  2. Make changes to Terraform scripts, Helm templates (`values.yaml`), or Kubernetes manifests.
-  3. Push changes to GitHub:
-     ```bash
-     git add .
-     git commit -m "config: increase backend memory allocation"
-     git push origin main
-     ```
-  4. **GitOps Automation**: **Argo CD** automatically detects your changes, pulls the new manifests, and synchronizes the cluster state without you ever needing to run manual deployment commands!
-
