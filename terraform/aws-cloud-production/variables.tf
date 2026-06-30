@@ -1,7 +1,7 @@
 variable "aws_region" {
   type        = string
   description = "AWS region for resource deployment"
-  default     = "us-east-1"
+  default     = "ap-south-1"
 }
 
 variable "project_name" {
@@ -37,11 +37,11 @@ variable "private_subnets" {
 variable "instance_type" {
   type        = string
   description = "EC2 instance size for running Kubernetes (k3s)"
-  default     = "t3.medium" # Minimum recommended for running multiple pods comfortably
+  default     = "t3.small" # Modified to t3.small as requested by the user
 }
 
 variable "key_name" {
   type        = string
   description = "Name of the AWS EC2 SSH key pair"
-  default     = "apexpos-key"
+  default     = "apex-pos"
 }

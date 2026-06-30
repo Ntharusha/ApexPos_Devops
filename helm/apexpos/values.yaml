@@ -43,7 +43,7 @@ backend:
   env:
     port: 5000
     nodeEnv: production
-    allowedOrigins: "http://localhost,http://localhost:80,http://localhost:30500,http://localhost:30080"
+    allowedOrigins: "http://localhost,http://localhost:80,http://localhost:30500,http://localhost:30080,http://13.235.9.45,http://13.235.9.45:80,http://13.235.9.45:30080"
   secrets:
     jwtSecret: "eW91ci1zdXBlci1zZWNyZXQtand0LWtleS1jaGFuZ2UtdGhpcy1pbi1wcm9kdWN0aW9u" # Default base64 encoded placeholder
 

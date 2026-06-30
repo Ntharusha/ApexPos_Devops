@@ -17,8 +17,8 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: host.minikube.internal:5000/apexpos-frontend:latest
-          imagePullPolicy: Always
+          image: ghcr.io/ntharusha/apexpos-frontend:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           readinessProbe:

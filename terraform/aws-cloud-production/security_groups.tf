@@ -29,6 +29,15 @@ resource "aws_security_group" "k8s_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Jenkins CI/CD Access
+  ingress {
+    description = "Jenkins CI/CD Console"
+    from_port   = 8085
+    to_port     = 8085
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # App NodePorts for direct service exposure (if not using Ingress)
   ingress {
     description = "ApexPOS Frontend NodePort"

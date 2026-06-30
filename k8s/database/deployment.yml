@@ -7,6 +7,8 @@ metadata:
     app: apexpos-database
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: apexpos-database
@@ -18,35 +20,29 @@ spec:
       containers:
         - name: mongodb
           image: mongo:6.0
+          # Limit WiredTiger cache to 256MB to prevent OOM on t3.small (2GB RAM)
+          args: ["--wiredTigerCacheSizeGB", "0.25"]
           ports:
             - containerPort: 27017
           readinessProbe:
-            exec:
-              command:
-                - mongosh
-                - --port
-                - "27017"
-                - --eval
-                - "db.runCommand({ping: 1})"
-            initialDelaySeconds: 10
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 20
             periodSeconds: 10
+            failureThreshold: 5
           livenessProbe:
-            exec:
-              command:
-                - mongosh
-                - --port
-                - "27017"
-                - --eval
-                - "db.runCommand({ping: 1})"
-            initialDelaySeconds: 15
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 30
             periodSeconds: 20
+            failureThreshold: 5
           resources:
             limits:
-              cpu: 500m
-              memory: 512Mi
+              cpu: 400m
+              memory: 384Mi
             requests:
-              cpu: 200m
-              memory: 256Mi
+              cpu: 100m
+              memory: 192Mi
           volumeMounts:
             - name: mongodb-data
               mountPath: /data/db

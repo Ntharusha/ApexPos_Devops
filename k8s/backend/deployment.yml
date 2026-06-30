@@ -17,8 +17,8 @@ spec:
     spec:
       containers:
         - name: backend
-          image: host.minikube.internal:5000/apexpos-backend:latest
-          imagePullPolicy: Always
+          image: ghcr.io/ntharusha/apexpos-backend:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
           envFrom:
