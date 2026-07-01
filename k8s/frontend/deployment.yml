@@ -6,7 +6,12 @@ metadata:
   labels:
     app: apexpos-frontend
 spec:
-  replicas: 2
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   selector:
     matchLabels:
       app: apexpos-frontend
@@ -35,8 +40,8 @@ spec:
             periodSeconds: 20
           resources:
             limits:
-              cpu: 200m
-              memory: 256Mi
-            requests:
-              cpu: 50m
+              cpu: 150m
               memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
