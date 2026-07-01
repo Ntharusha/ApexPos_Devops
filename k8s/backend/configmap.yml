@@ -7,4 +7,4 @@ data:
   PORT: "5000"
   NODE_ENV: "production"
   MONGODB_URI: "mongodb://apexpos-database:27017/apexpos"
-  ALLOWED_ORIGINS: "http://localhost,http://localhost:80,http://localhost:30500,http://localhost:30080,http://13.235.9.45,http://13.235.9.45:80,http://13.235.9.45:30080"
+  ALLOWED_ORIGINS: "http://localhost,http://localhost:80,http://localhost:30500,http://localhost:30080,http://3.110.182.170,http://3.110.182.170:80,http://3.110.182.170:30080"
