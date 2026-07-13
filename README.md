@@ -160,6 +160,48 @@ graph LR
 
 ---
 
+## 📊 Observability Stack (Prometheus + Grafana)
+
+ApexPOS ships a full monitoring stack using the [`kube-prometheus-stack`](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) Helm chart, optimized for the `t3.small` resource profile.
+
+### Components
+
+| Component | Role | Port |
+|---|---|---|
+| **Prometheus** | Metrics scraping & storage (7-day retention) | Internal |
+| **Grafana** | Visualization dashboards | `NodePort 30300` |
+| **Node Exporter** | Host-level CPU / RAM / Disk metrics | DaemonSet |
+| **Kube State Metrics** | Kubernetes object state metrics | ClusterIP |
+
+### Custom ApexPOS Dashboard
+
+A pre-built Grafana dashboard (`apexpos-overview`) is auto-loaded via a ConfigMap and displays:
+
+- 🖥️ **Node CPU, Memory & Disk usage** (real-time)
+- 🚀 **Pod CPU & Memory** for the `apexpos` namespace
+- 🟢 **Running pod count** health indicator
+- 🍃 **MongoDB pod restart counter** for stability monitoring
+
+### Install Monitoring Stack
+
+```bash
+# Run from devops-repo root (requires kubectl + helm configured)
+bash monitoring/install-monitoring.sh
+```
+
+### Access Grafana
+
+```
+URL      : http://<EC2_PUBLIC_IP>:30300
+Username : admin
+Password : ApexPOS@2026
+```
+
+> **Note:** Port `30300` is pre-configured in the Terraform security group.  
+> For local access without a public IP: `kubectl port-forward -n monitoring svc/monitoring-grafana 3000:80`
+
+---
+
 ## 🛠️ Infrastructure Provisioning (Terraform)
 
 The Infrastructure as Code (IaC) logic creates a customized secure virtual networking stack on AWS to host K3s.

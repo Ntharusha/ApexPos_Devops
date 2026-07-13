@@ -1,0 +1,111 @@
+# ============================================================
+#  ApexPOS - kube-prometheus-stack Helm Values
+#  Optimized for AWS t3.small (2GB RAM + 4GB swap)
+#  Chart: prometheus-community/kube-prometheus-stack
+# ============================================================
+
+# ──────────────────────────────────────────────
+# Prometheus Configuration
+# ──────────────────────────────────────────────
+prometheus:
+  enabled: true
+  prometheusSpec:
+    # Scrape interval – every 30s is sufficient for a portfolio cluster
+    scrapeInterval: "30s"
+    evaluationInterval: "30s"
+    retention: "7d"
+
+    # Watch ALL namespaces for ServiceMonitors (picks up apexpos namespace)
+    serviceMonitorNamespaceSelector: {}
+    serviceMonitorSelector: {}
+    podMonitorNamespaceSelector: {}
+    podMonitorSelector: {}
+
+    # Resource limits – critical for t3.small
+    resources:
+      requests:
+        cpu: 200m
+        memory: 300Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+    # Persistent storage for metrics
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+
+# ──────────────────────────────────────────────
+# Grafana Configuration
+# ──────────────────────────────────────────────
+grafana:
+  enabled: true
+  adminPassword: "ApexPOS@2026"
+
+  service:
+    type: NodePort
+    nodePort: 30300
+
+  # Resource limits for t3.small
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+  # Auto-load custom ApexPOS dashboard ConfigMap
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      namespace: monitoring
+
+  # Grafana.ini settings
+  grafana.ini:
+    server:
+      root_url: "%(protocol)s://%(domain)s:30300"
+    auth.anonymous:
+      enabled: false
+
+# ──────────────────────────────────────────────
+# AlertManager – disabled to save RAM on t3.small
+# ──────────────────────────────────────────────
+alertmanager:
+  enabled: false
+
+# ──────────────────────────────────────────────
+# Node Exporter – collects host-level metrics (CPU, RAM, disk)
+# ──────────────────────────────────────────────
+nodeExporter:
+  enabled: true
+
+# ──────────────────────────────────────────────
+# Kube State Metrics – exposes K8s object metrics
+# ──────────────────────────────────────────────
+kubeStateMetrics:
+  enabled: true
+
+# ──────────────────────────────────────────────
+# Component Scraping – optimized for single-node K3s
+# ──────────────────────────────────────────────
+kubeEtcd:
+  enabled: false   # K3s uses sqlite, not etcd
+
+kubeControllerManager:
+  enabled: false   # Not exposed on K3s by default
+
+kubeScheduler:
+  enabled: false   # Not exposed on K3s by default
+
+kubeProxy:
+  enabled: false   # K3s uses kube-proxy alternative (klipper)
+
+# kubelet scraping (enabled – works on K3s)
+kubelet:
+  enabled: true

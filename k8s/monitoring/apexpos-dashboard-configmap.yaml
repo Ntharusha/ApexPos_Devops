@@ -1,0 +1,222 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apexpos-grafana-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"   # Grafana sidecar auto-loads ConfigMaps with this label
+data:
+  apexpos-dashboard.json: |
+    {
+      "__inputs": [],
+      "__requires": [],
+      "annotations": { "list": [] },
+      "description": "ApexPOS - Application & Infrastructure Overview",
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "panels": [
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+          "id": 1,
+          "title": "☸️ Cluster Health",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 80 }
+                ]
+              },
+              "unit": "percent"
+            }
+          },
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+          "id": 2,
+          "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
+          "title": "Node CPU Usage",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "100 - (avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+              "legendFormat": "CPU %",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 70 },
+                  { "color": "red", "value": 90 }
+                ]
+              },
+              "unit": "percent"
+            }
+          },
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+          "id": 3,
+          "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
+          "title": "Node Memory Usage",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "100 * (1 - ((node_memory_MemAvailable_bytes) / (node_memory_MemTotal_bytes)))",
+              "legendFormat": "Memory %",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 0 }
+                ]
+              },
+              "mappings": [
+                { "options": { "0": { "color": "red", "text": "DOWN" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }
+              ]
+            }
+          },
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+          "id": 4,
+          "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
+          "title": "Running Pods – apexpos namespace",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "count(kube_pod_status_phase{namespace=\"apexpos\", phase=\"Running\"})",
+              "legendFormat": "Running Pods",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 75 },
+                  { "color": "red", "value": 90 }
+                ]
+              },
+              "unit": "percent"
+            }
+          },
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+          "id": 5,
+          "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
+          "title": "Node Disk Usage",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"}) * 100)",
+              "legendFormat": "Disk %",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+          "id": 10,
+          "title": "🚀 ApexPOS Application Metrics",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": { "color": { "mode": "palette-classic" }, "unit": "bytes" }
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+          "id": 11,
+          "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+          "title": "Pod Memory Usage – apexpos namespace",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "container_memory_working_set_bytes{namespace=\"apexpos\", container!=\"\", container!=\"POD\"}",
+              "legendFormat": "{{pod}} / {{container}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" }
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+          "id": 12,
+          "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+          "title": "Pod CPU Usage (millicores) – apexpos namespace",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "rate(container_cpu_usage_seconds_total{namespace=\"apexpos\", container!=\"\", container!=\"POD\"}[5m]) * 1000",
+              "legendFormat": "{{pod}} / {{container}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "collapsed": false,
+          "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+          "id": 20,
+          "title": "🍃 MongoDB Health",
+          "type": "row"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": {
+            "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" }
+          },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 15 },
+          "id": 21,
+          "options": { "legend": { "calcs": ["mean"], "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+          "title": "MongoDB Pod Restart Count",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "kube_pod_container_status_restarts_total{namespace=\"apexpos\", pod=~\".*database.*\"}",
+              "legendFormat": "{{pod}} restarts",
+              "refId": "A"
+            }
+          ]
+        }
+      ],
+      "refresh": "30s",
+      "schemaVersion": 38,
+      "tags": ["apexpos", "kubernetes", "mongodb"],
+      "time": { "from": "now-1h", "to": "now" },
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "ApexPOS – Application Overview",
+      "uid": "apexpos-overview",
+      "version": 1
+    }

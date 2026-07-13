@@ -55,6 +55,23 @@ resource "aws_security_group" "k8s_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Observability Stack – Grafana & Prometheus NodePorts
+  ingress {
+    description = "Grafana Dashboard (Prometheus/Grafana monitoring)"
+    from_port   = 30300
+    to_port     = 30300
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Prometheus Metrics UI"
+    from_port   = 30090
+    to_port     = 30090
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # Kubernetes cluster management ports (optional, for remote kubectl access)
   ingress {
     description = "Kubernetes API Server"
