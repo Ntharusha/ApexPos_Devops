@@ -37,7 +37,7 @@ variable "private_subnets" {
 variable "instance_type" {
   type        = string
   description = "EC2 instance size for running Kubernetes (k3s)"
-  default     = "t3.small" # Modified to t3.small as requested by the user
+  default     = "t3.small" # Reverted to t3.small due to AWS Free Tier account restrictions
 }
 
 variable "key_name" {
