@@ -6,7 +6,7 @@
 [![AWS](https://img.shields.io/badge/AWS-EC2%20%26%20VPC-orange.svg?logo=amazonwebservices)](https://aws.amazon.com/)
 [![Jenkins](https://img.shields.io/badge/Jenkins-CI%2FCD-red.svg?logo=jenkins)](https://www.jenkins.io/)
 [![ArgoCD](https://img.shields.io/badge/ArgoCD-GitOps-orange.svg?logo=argocd)](https://argo-cd.readthedocs.io/)
-[![Docker](https://img.shields.io/badge/Docker-Containers-blue.svg?logo=docker)](https://www.docker.com/)
+[![DevSecOps](https://img.shields.io/badge/DevSecOps-Trivy%20%26%20Probes-blue.svg?logo=aquasecurity)](.github/workflows/validate.yml)
 
 This repository serves as the central **Infrastructure as Code (IaC)**, **GitOps**, and **Orchestration Hub** for the ApexPOS software suite. It contains production Terraform configurations, Kubernetes raw manifests, Helm Charts, and automated delivery pipelines.
 

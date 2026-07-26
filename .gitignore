@@ -13,3 +13,7 @@ crash.log
 *.pub
 *kubeconfig
 .env
+
+# Private Internship Showcase Document
+INTERNSHIP_SHOWCASE.md
+
